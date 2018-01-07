@@ -71,18 +71,22 @@ class ArmEnvironment(object):
 				raise RuntimeError("The episode has already terminated, please reset the environment")
 			self.is_terminated = True
 
-		action = np.clip(action, *self.action_bounds)
-		self.action = action
-		joint_vels = np.clip(self.max_vel * action, *self.vel_bounds)
-		# self.joint_states = np.clip(self.joint_states + joint_vels, [-np.pi] * self.n_joints, [np.pi] * self.n_joints)
-		self.joint_states += joint_vels
-
+		self.joint_states = action
 		return np.array(self.joint_states), 0, self.is_terminated, None
 
 
-class MultiArmEnvironment(object):
-	def __init__(self, n_arms=4, n_joints=2, max_vel=np.pi / 4, time_lim=16):
-		super(MultiArmEnvironment, self).__init__()
+class ArmTorqueEnvironment(ArmEnvironment):
+	def step(self, action):
+		action = np.clip(action, *self.action_bounds)
+		self.action = action
+		joint_vels = np.clip(self.max_vel * action, *self.vel_bounds)
+		self.joint_states += joint_vels
+		return super(ArmTorqueEnvironment, self).step(self.joint_states)
+
+
+class MultiArmEnvironmentBase(object):
+	def __init__(self, n_arms=4, n_joints=2, max_vel=np.pi / 4, time_lim=16, sub_env_type=ArmEnvironment):
+		super(MultiArmEnvironmentBase, self).__init__()
 
 		self.n_arms = n_arms
 		self.n_w = int(np.sqrt(self.n_arms))
@@ -95,7 +99,7 @@ class MultiArmEnvironment(object):
 		for i in range(self.n_arms):
 			x_i = i % self.n_w
 			y_i = int(i / self.n_w)
-			env = ArmEnvironment(n_joints, max_vel, time_lim)
+			env = sub_env_type(n_joints, max_vel, time_lim)
 			env.img = self.img[
 					  x_i * self.env_size:(x_i + 1) * self.env_size,
 					  y_i * self.env_size:(y_i + 1) * self.env_size]
@@ -128,3 +132,13 @@ class MultiArmEnvironment(object):
 		results = [np.array(result[i] for result in results) for i in range(4)]
 
 		return results
+
+
+class MultiArmEnvironment(MultiArmEnvironmentBase):
+	def __init__(self, n_arms=4, n_joints=2, max_vel=np.pi / 4, time_lim=16):
+		super(MultiArmEnvironment, self).__init__(n_arms, n_joints, max_vel, time_lim, ArmEnvironment)
+
+
+class MultiArmTorqueEnvironment(MultiArmEnvironmentBase):
+	def __init__(self, n_arms=4, n_joints=2, max_vel=np.pi / 4, time_lim=16):
+		super(MultiArmTorqueEnvironment, self).__init__(n_arms, n_joints, max_vel, time_lim, ArmEnvironment)

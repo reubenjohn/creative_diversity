@@ -46,39 +46,30 @@ class QuadraticLSTM(BasicLSTMCell):
 
 
 def encoder(x: tf.Tensor, noise, initial_state: LSTMStateTuple, seq_len, n_joints, motion_selection):
-	f = x
-	f = tf.expand_dims(f, axis=1)
-	f = tf.tile(f, [1, seq_len, 1])
-	f = tf.concat([f, tf.expand_dims(noise, axis=2)], axis=2)
+	x = tf.expand_dims(x, axis=1)
+	x = tf.tile(x, [1, seq_len, 1])
+	x = tf.concat([x, tf.expand_dims(noise, axis=2)], axis=2)
 
 	with tf.variable_scope('lstm1'):
 		lstm = BasicLSTMCell(2 ** n_joints + motion_selection)
-		outputs, final_state = tf.nn.dynamic_rnn(lstm, f, dtype=tf.float32, initial_state=initial_state)
-	f = outputs
-	f = tf.layers.dense(f, 2 ** n_joints + motion_selection)
+		x, final_state = tf.nn.dynamic_rnn(lstm, x, dtype=tf.float32, initial_state=initial_state)
+	x = tf.layers.dense(x, 2 ** n_joints + motion_selection)
 
 	with tf.variable_scope('lstm2'):
 		lstm = BasicLSTMCell(2 ** n_joints + motion_selection)
-		outputs, final_state = tf.nn.dynamic_rnn(lstm, f, dtype=tf.float32, initial_state=initial_state)
+		x, final_state = tf.nn.dynamic_rnn(lstm, x, dtype=tf.float32, initial_state=initial_state)
 
-	f = outputs
-
-	f = tf.layers.dense(f, n_joints)
-	f = tf.clip_by_value(f, -pi, pi)
-	return f, final_state
+	x = tf.layers.dense(x, n_joints)
+	x = tf.clip_by_value(x, -pi, pi)
+	return x, final_state
 
 
 def decoder(x: tf.Tensor, initial_state, n_joints, motion_selection):
-	f = x
-
 	with tf.variable_scope('lstm1'):
 		lstm = QuadraticLSTM(2 ** n_joints + motion_selection)
-		outputs, final_state = tf.nn.dynamic_rnn(lstm, f, dtype=tf.float32, initial_state=initial_state)
-	f = outputs
-
-	f = tf.layers.dense(f, motion_selection)
-
-	predicted_motion_selection = tf.nn.softmax(f[:, -1, :])
+		x, final_state = tf.nn.dynamic_rnn(lstm, x, dtype=tf.float32, initial_state=initial_state)
+	x = tf.layers.dense(x, motion_selection)
+	predicted_motion_selection = tf.nn.softmax(x[:, -1, :])
 	return predicted_motion_selection, final_state
 
 
@@ -89,20 +80,10 @@ def autoencoder_seq(x: tf.Tensor, noise, initial_state, seq_len, n_joints, lstm_
 	 	( [BATCH_SIZE, MOTION_SELECTION] , [BATCH_SIZE, SEQ_LEN, N_JOINTS] )
 	"""
 	motion_selection = x.shape[1].value
-	f = x
-
-	with tf.variable_scope('state_predictor'):
-		state_predictions, final_predictor_state = encoder(f, noise, LSTMStateTuple(*initial_state[0]), seq_len,
-														   n_joints, motion_selection)
-
-	# reshape = list(shape.value if shape.value is not None else -1 for shape in f.shape)
-	# reshape[-1] = int(reshape[-1] / 2)
-	# reshape.append(2)
-	# state_predictions = tf.reshape(f, reshape)
-
-	with tf.variable_scope('motion_classifier'):
-		predicted_motion_selection, final_classifier_state = decoder(state_predictions,
-																	 LSTMStateTuple(*initial_state[1]),
-																	 n_joints, motion_selection)
-
+	with tf.variable_scope('encoder'):
+		state_predictions, final_predictor_state = encoder(
+			x, noise, LSTMStateTuple(*initial_state[0]), seq_len, n_joints, motion_selection)
+	with tf.variable_scope('decoder'):
+		predicted_motion_selection, final_classifier_state = decoder(
+			state_predictions, LSTMStateTuple(*initial_state[1]), n_joints, motion_selection)
 	return predicted_motion_selection, state_predictions, (final_predictor_state, final_classifier_state)
