@@ -1,7 +1,7 @@
 import cv2
 import numpy as np
 
-ENV_SIZE = 72
+ENV_SIZE = 160
 
 
 class ArmEnvironment(object):
