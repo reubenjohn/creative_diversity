@@ -2,8 +2,12 @@ Creative Diversity
 ===
 Simple setup to optimise for diversity whilst maintaining uniqueness.
 
-Here's a [demo](https://www.youtube.com/watch?v=b_T1iQYkQRk) of it getting a bunch of arms to dance uniquely to one another  
-Here's a [demo](https://www.youtube.com/watch?v=SvkLbaj4irA) of it's internal structure 
+[![Arm Dance](https://img.youtube.com/vi/b_T1iQYkQRk/0.jpg)](https://www.youtube.com/watch?v=b_T1iQYkQRk)  
+Video demo of of it getting a bunch of arms to dance uniquely to one another
+
+
+[![Internal structure](https://img.youtube.com/vi/SvkLbaj4irA/0.jpg)](https://www.youtube.com/watch?v=SvkLbaj4irA)  
+Video demo of it's internal structure
 
 FYI, it can be tweaked to do a lot more than get the arms to dance. For instance, it can be used to create doodles, make funny facial expressions, etc. I would love to see someone take it for a spin! Or maybe even help out with the To Do List.
 
