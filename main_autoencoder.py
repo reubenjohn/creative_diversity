@@ -13,7 +13,7 @@ from models import autoencoder_seq
 N_ITERATIONS = 10000
 N_JOINTS = 2
 SEQ_LEN = 16
-BATCH_SIZE = 512
+BATCH_SIZE = 1024 * 16
 MOTION_SELECTION = 4 * 4
 LSTM_SIZE = MOTION_SELECTION + 2 ** N_JOINTS
 
@@ -68,10 +68,12 @@ def display():
 threading.Thread(target=display).start()
 
 summaries_op = tf.summary.merge_all()
-writer = tf.summary.FileWriter(os.environ['logdir']+'/creative_autoencoder/', tf.get_default_graph())
+writer = tf.summary.FileWriter(os.environ['logdir'] + '/creative_autoencoder/', tf.get_default_graph())
 
 env = MultiArmTorqueEnvironment(n_arms=MOTION_SELECTION, n_joints=N_JOINTS, time_lim=SEQ_LEN)
-with tf.Session() as sess:
+config = tf.ConfigProto()
+config.gpu_options.allow_growth = True
+with tf.Session(config=config) as sess:
 	sess.run(tf.global_variables_initializer())
 	for iteration in range(N_ITERATIONS):
 		batch = MOTIONS[np.random.randint(0, MOTION_SELECTION, BATCH_SIZE)]

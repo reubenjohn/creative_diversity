@@ -1,12 +1,12 @@
 from math import pi
 
 import tensorflow as tf
-from tensorflow.python.ops.rnn_cell_impl import LSTMStateTuple, _linear
+from tensorflow.python.ops.rnn_cell_impl import LSTMStateTuple
 from tflearn.layers.recurrent import BasicLSTMCell
 
 
 class QuadraticLSTM(BasicLSTMCell):
-	def call(self, inputs, state):
+	def call(self, inputs, **kwargs):
 		"""Long short-term memory cell (LSTM).
 
 		Args:
@@ -21,6 +21,7 @@ class QuadraticLSTM(BasicLSTMCell):
 			`LSTMStateTuple` or a concatenated state, depending on
 			`state_is_tuple`).
 		"""
+		state = kwargs['state']
 		sigmoid = tf.math_ops.sigmoid
 		# Parameters of gates are concatenated into one multiply for efficiency.
 		if self._state_is_tuple:
@@ -28,14 +29,14 @@ class QuadraticLSTM(BasicLSTMCell):
 		else:
 			c, h = tf.array_ops.split(value=state, num_or_size_splits=2, axis=1)
 
-		concat = _linear([inputs, h], 4 * self._num_units, True)
+		concat = tf.layers.dense(tf.concat([inputs, h]), 4 * self._num_units, True)
 		concat = tf.layers.dense(concat, 4 * self._num_units)
 
 		# i = input_gate, j = new_input, f = forget_gate, o = output_gate
 		i, j, f, o = tf.array_ops.split(value=concat, num_or_size_splits=4, axis=1)
 
 		new_c = (
-			c * sigmoid(f + self._forget_bias) + sigmoid(i) * self._activation(j))
+				c * sigmoid(f + self._forget_bias) + sigmoid(i) * self._activation(j))
 		new_h = self._activation(new_c) * sigmoid(o)
 
 		if self._state_is_tuple:
